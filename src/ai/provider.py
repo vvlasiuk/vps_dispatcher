@@ -17,11 +17,10 @@ SchemaModel = TypeVar("SchemaModel", bound=BaseModel)
 def _convert_file_to_data_uri(file_path: str) -> str:
     """Convert local file to data URI (base64 encoded)."""
     path = Path(file_path)
-    
+
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
-    
-    # Determine MIME type from extension
+
     mime_types = {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
@@ -30,11 +29,10 @@ def _convert_file_to_data_uri(file_path: str) -> str:
         ".webp": "image/webp",
     }
     mime_type = mime_types.get(path.suffix.lower(), "image/jpeg")
-    
-    # Read file and encode to base64
+
     with open(path, "rb") as f:
         file_data = f.read()
-    
+
     b64_data = base64.b64encode(file_data).decode("utf-8")
     return f"data:{mime_type};base64,{b64_data}"
 
@@ -42,20 +40,16 @@ def _convert_file_to_data_uri(file_path: str) -> str:
 class GeminiAIProvider:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        llm_kwargs = {
+        llm_kwargs: dict = {
             "model": settings.gemini_model,
             "google_api_key": settings.gemini_api_key,
             "temperature": 0,
         }
-        if settings.google_api_version:
-            llm_kwargs["api_version"] = settings.google_api_version
 
-        try:
-            self._llm = ChatGoogleGenerativeAI(**llm_kwargs)
-        except TypeError:
-            # Backward compatibility for package versions without api_version support.
-            llm_kwargs.pop("api_version", None)
-            self._llm = ChatGoogleGenerativeAI(**llm_kwargs)
+        if settings.google_api_version:
+            llm_kwargs["model_kwargs"] = {"api_version": settings.google_api_version}
+
+        self._llm = ChatGoogleGenerativeAI(**llm_kwargs)
 
     async def generate_structured(
         self,
@@ -70,14 +64,15 @@ class GeminiAIProvider:
         payload_blocks: list[dict[str, str]] = [{"type": "text", "text": prompt}]
         if message.content.text:
             payload_blocks.append({"type": "text", "text": f"User text: {message.content.text}"})
-
         for attachment in message.content.files:
-            # Convert local file to data URI if needed
             file_url = attachment.file_url
-            if not file_url.startswith("http") and not file_url.startswith("gs://") and not file_url.startswith("data:"):
-                # This is a local path, convert to base64 data URI
+            if (
+                not file_url.startswith("http")
+                and not file_url.startswith("gs://")
+                and not file_url.startswith("data:")
+            ):
                 file_url = _convert_file_to_data_uri(file_url)
-            
+
             payload_blocks.append(
                 {
                     "type": "image_url",
@@ -87,6 +82,7 @@ class GeminiAIProvider:
 
         structured_llm = self._llm.with_structured_output(response_model)
         result = await structured_llm.ainvoke([HumanMessage(content=payload_blocks)])
+
         if isinstance(result, response_model):
             validated = result
         else:
@@ -97,4 +93,5 @@ class GeminiAIProvider:
             raise ValueError(
                 f"AI confidence {confidence} is below threshold {self._settings.ai_confidence_threshold}"
             )
+
         return validated

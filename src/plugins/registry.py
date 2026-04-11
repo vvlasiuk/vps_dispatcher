@@ -18,11 +18,15 @@ def build_plugin_registry(settings: Settings, provider: GeminiAIProvider) -> Plu
 
     try:
         from plugins.clients.sys_registry import register_client_factories
-        register_client_factories(factories, settings=settings, provider=provider)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        raise RuntimeError(
+            "Failed to import plugins.clients.sys_registry. "
+            "Check PYTHONPATH, venv interpreter, and plugin module imports."
+        ) from exc
+
+    register_client_factories(factories, settings=settings, provider=provider)
 
     if not factories:
-        raise ValueError("No active plugins configured — sys_registry.py not found or empty")
+        raise ValueError("No active plugins configured — sys_registry.py loaded, but no factories were registered")
 
     return PluginRegistry(plugins=[factory() for factory in factories.values()])
