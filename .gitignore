@@ -13,3 +13,4 @@ logs/
 # Client-specific plugins (not versioned, archived separately)
 src/plugins/clients/*
 !src/plugins/clients/__init__.py
+!src/plugins/clients/sys_registry.example.py
