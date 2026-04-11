@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Dispatcher",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python",
+      "args": [
+        "src/main.py",
+        "--env-file",
+        ".env.example"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
