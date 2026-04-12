@@ -72,7 +72,11 @@ def build_form_recognition_graph(settings: Settings, provider: GeminiAIProvider)
         validated_payload = {
             "form_type": extraction.form_type,
             "recognized_data": extraction.extracted_data,
-            "language": state["inbound"].content.language or settings.default_language,
+            "language": (
+                state["inbound"].content.language
+                if state["inbound"].content and state["inbound"].content.language
+                else settings.default_language
+            ),
         }
         workflow_state = state["workflow_state"].model_copy(
             update={

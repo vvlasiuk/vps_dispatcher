@@ -112,7 +112,7 @@ def classify_message(message: InputMessage, current_state: WorkflowState | None)
             reason="photo_default_tool_intake",
         )
 
-    text = (message.content.text or "").lower()
+    text = (message.content.text if message.content and message.content.text else "").lower()
     if any(keyword in text for keyword in ("бланк", "форма", "form")):
         return RouteDecision(
             algorithm=WorkflowAlgorithm.FORM_RECOGNITION,

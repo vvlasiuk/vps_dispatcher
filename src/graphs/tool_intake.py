@@ -93,7 +93,7 @@ def build_tool_intake_graph(settings: Settings, provider: GeminiAIProvider):
                 "tool": state["tool_identification"].model_dump(mode="json"),
                 "condition": state["tool_condition"].model_dump(mode="json"),
                 "customer": result.model_dump(mode="json"),
-                "problem_description": inbound.content.text,
+                "problem_description": inbound.content.text if inbound.content else None,
                 "default_language": settings.default_language,
             },
         )

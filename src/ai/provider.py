@@ -62,9 +62,10 @@ class GeminiAIProvider:
             raise RuntimeError("GEMINI_API_KEY is required for AI workflow nodes")
 
         payload_blocks: list[dict[str, str]] = [{"type": "text", "text": prompt}]
-        if message.content.text:
-            payload_blocks.append({"type": "text", "text": f"User text: {message.content.text}"})
-        for attachment in message.content.files:
+        content = message.content
+        if content and content.text:
+            payload_blocks.append({"type": "text", "text": f"User text: {content.text}"})
+        for attachment in (content.files if content else []):
             file_url = attachment.file_url
             if (
                 not file_url.startswith("http")

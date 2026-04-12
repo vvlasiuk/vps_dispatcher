@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ContentKind(StrEnum):
@@ -41,22 +41,29 @@ class MessageContent(BaseModel):
     files: list[FileAttachment] = Field(default_factory=list)
 
 
+class CommandTag(BaseModel):
+    name: str
+    params: dict[str, object] = Field(default_factory=dict)
+
+
+class MessageDestination(BaseModel):
+    system: str | None = None
+    chat_id: str | None = None
+
+
 class InputMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     source: MessageSource
-    content: MessageContent
-
-    @model_validator(mode="after")
-    def validate_payload(self) -> "InputMessage":
-        if not (self.content.text or self.content.files):
-            raise ValueError("Message must contain text or files")
-        return self
+    content: MessageContent | None = None
+    command_tag: CommandTag | None = Field(default=None, alias="command")
+    data: list[dict[str, object]] = Field(default_factory=list, alias="DATA")
+    destination: MessageDestination | None = Field(default=None, alias="destination")
 
     @property
     def content_kind(self) -> ContentKind:
-        has_text = bool(self.content.text and self.content.text.strip())
-        has_files = bool(self.content.files)
+        has_text = bool(self.content and self.content.text and self.content.text.strip())
+        has_files = bool(self.content and self.content.files)
 
         if has_text and has_files:
             return ContentKind.MIXED
@@ -70,7 +77,7 @@ class InputMessage(BaseModel):
 
     @property
     def command(self) -> str | None:
-        if not self.content.text:
+        if not self.content or not self.content.text:
             return None
 
         first_token = self.content.text.strip().split(maxsplit=1)[0].lower()
