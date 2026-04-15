@@ -40,16 +40,16 @@ def _convert_file_to_data_uri(file_path: str) -> str:
 class GeminiAIProvider:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        llm_kwargs: dict = {
-            "model": settings.gemini_model,
-            "google_api_key": settings.gemini_api_key,
-            "temperature": 0,
-        }
-
-        if settings.google_api_version:
-            llm_kwargs["model_kwargs"] = {"api_version": settings.google_api_version}
-
-        self._llm = ChatGoogleGenerativeAI(**llm_kwargs)
+        self._llm = None
+        if settings.gemini_api_key:
+            llm_kwargs: dict = {
+                "model": settings.gemini_model,
+                "google_api_key": settings.gemini_api_key,
+                "temperature": 0,
+            }
+            if settings.google_api_version:
+                llm_kwargs["model_kwargs"] = {"api_version": settings.google_api_version}
+            self._llm = ChatGoogleGenerativeAI(**llm_kwargs)
 
     async def generate_structured(
         self,
@@ -58,7 +58,7 @@ class GeminiAIProvider:
         response_model: type[SchemaModel],
         message: InputMessage,
     ) -> SchemaModel:
-        if not self._settings.gemini_api_key:
+        if not self._llm:
             raise RuntimeError("GEMINI_API_KEY is required for AI workflow nodes")
 
         payload_blocks: list[dict[str, str]] = [{"type": "text", "text": prompt}]
