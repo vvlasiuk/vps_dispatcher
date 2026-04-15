@@ -53,16 +53,31 @@ class ExamplePlugin(MessagePlugin):
         """
         message = context.message
         state = context.current_state or self._make_state(message)
+        text = message.content and message.content.text and message.content.text
 
-        if message.content and message.content.text and message.content.text.strip() == "/start":
+        if text.strip() == "/start":
             return self._handle_start(message, state)
 
-        if message.content and message.content.text and message.content.text == "⬅️ До головного меню":
+        if text == "⬅️ До головного меню":
             return self._handle_start(message, state)
 
-        if message.content and message.content.text and message.content.text == "🧾 Звірка":
+        if text == "🧾 Звірка":
             return self._handle_reconcile_menu(message, state)
 
+        # Явний дефолтний результат, якщо жодна умова не спрацювала:
+        return PluginResult(
+            workflow_state=state,
+            outputs=[
+                PluginOutput(
+                    payload={"text": "Невідома команда. Спробуйте ще раз."},
+                    destination=RabbitDestination(
+                        exchange=_OUTPUT_EXCHANGE,
+                        routing_key=_OUTPUT_ROUTING_KEY,
+                    ),
+                    event_type="text_sent",
+                )
+            ],
+        )
 
     def _handle_reconcile_menu(self, message: InputMessage, state: WorkflowState) -> PluginResult:
         """
@@ -102,13 +117,6 @@ class ExamplePlugin(MessagePlugin):
             ],
             stop_processing=True,
         )
-
-        # --- Шаблон для інших команд (розширюйте тут) ---
-        # if message.content and message.content.text and message.content.text.strip() == "/help":
-        #     return self._handle_help(message, state)
-        # --- Кінець шаблону ---
-
-        return PluginResult(workflow_state=state)
 
     def _handle_start(self, message: InputMessage, state: WorkflowState) -> PluginResult:
         """
