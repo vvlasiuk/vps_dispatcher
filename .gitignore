@@ -14,3 +14,6 @@ logs/
 src/plugins/clients/*
 !src/plugins/clients/__init__.py
 !src/plugins/clients/sys_registry.example.py
+src/plugins/clients/*
+!src/plugins/clients/example_plugin/
+!src/plugins/clients/example_plugin/**
