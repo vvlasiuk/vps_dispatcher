@@ -54,10 +54,54 @@ class ExamplePlugin(MessagePlugin):
         message = context.message
         state = context.current_state or self._make_state(message)
 
-        # --- Обробка /start ---
         if message.content and message.content.text and message.content.text.strip() == "/start":
             return self._handle_start(message, state)
-        # --- Кінець блоку /start ---
+
+        if message.content and message.content.text and message.content.text == "⬅️ До головного меню":
+            return self._handle_start(message, state)
+
+        if message.content and message.content.text and message.content.text == "🧾 Звірка":
+            return self._handle_reconcile_menu(message, state)
+
+
+    def _handle_reconcile_menu(self, message: InputMessage, state: WorkflowState) -> PluginResult:
+        """
+        Обробляє команду '🧾 Звірка': повертає спеціальне меню для звірки.
+        """
+        menu_path = _RESOURCES_DIR / "keyboard_reconcile_menu.json"
+        try:
+            keyboard = json.loads(menu_path.read_text(encoding="utf-8"))
+            if not isinstance(keyboard, dict) or "keyboard" not in keyboard:
+                _LOGGER.warning("keyboard_reconcile_menu.json має некоректну структуру: %s", keyboard)
+                keyboard = {"keyboard": [["/start"]], "resize_keyboard": True}
+        except Exception as e:
+            _LOGGER.error("Не вдалося зчитати keyboard_reconcile_menu.json: %s", e)
+            keyboard = {"keyboard": [["/start"]], "resize_keyboard": True}
+
+        payload = {
+            "destination": {
+                "system": message.source.system,
+                "chat_id": message.source.chat_id,
+            },
+            "keyboard": keyboard,
+        }
+        return PluginResult(
+            workflow_state=state,
+            outputs=[
+                PluginOutput(
+                    payload=payload,
+                    destination=RabbitDestination(
+                        exchange=_OUTPUT_EXCHANGE,
+                        routing_key=_OUTPUT_ROUTING_KEY,
+                    ),
+                    event_type="keyboard_reconcile_menu_sent",
+                )
+            ],
+            journal_events=[
+                ("keyboard_reconcile_menu_sent", {"destination": payload["destination"], "content": keyboard}),
+            ],
+            stop_processing=True,
+        )
 
         # --- Шаблон для інших команд (розширюйте тут) ---
         # if message.content and message.content.text and message.content.text.strip() == "/help":
