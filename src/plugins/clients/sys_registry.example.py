@@ -5,11 +5,7 @@ from typing import Callable
 from ai.provider import GeminiAIProvider
 from common.settings import Settings
 from plugins.base import MessagePlugin
-
-# Uncomment and import only the plugins you need:
-# from graphs.orchestrator import WorkflowOrchestrator
-# from plugins.clients.recognize_documents import RecognizeDocumentsPlugin
-# from plugins.clients.legacy_workflow import LegacyWorkflowPlugin
+from plugins.clients.example_plugin.plugin import ExamplePlugin
 
 
 def register_client_factories(
@@ -18,15 +14,10 @@ def register_client_factories(
     settings: Settings,
     provider: GeminiAIProvider,
 ) -> None:
-    # Register plugins for this deployment.
-    # Copy this file to sys_registry.py and uncomment the relevant entries.
+    
+    factories["example_plugin"] = lambda: ExamplePlugin(
+        settings=settings,
+        provider=provider,
+    )
 
-    # factories["recognize_documents"] = lambda: RecognizeDocumentsPlugin(
-    #     settings=settings, provider=provider
-    # )
-
-    # orchestrator = WorkflowOrchestrator(settings, provider)
-    # factories["legacy_workflow"] = lambda: LegacyWorkflowPlugin(
-    #     settings=settings, orchestrator=orchestrator
-    # )
     pass
