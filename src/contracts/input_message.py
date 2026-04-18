@@ -57,7 +57,7 @@ class InputMessage(BaseModel):
     source: MessageSource
     content: MessageContent | None = None
     command_tag: CommandTag | None = Field(default=None, alias="command")
-    data: dict[str, object] = Field(default_factory=dict, alias="DATA")
+    data: object = Field(default_factory=dict, alias="DATA")
     destination: MessageDestination | None = Field(default=None, alias="destination")
     error: str | None = None
 
