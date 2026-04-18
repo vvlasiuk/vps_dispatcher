@@ -59,6 +59,7 @@ class InputMessage(BaseModel):
     command_tag: CommandTag | None = Field(default=None, alias="command")
     data: dict[str, object] = Field(default_factory=dict, alias="DATA")
     destination: MessageDestination | None = Field(default=None, alias="destination")
+    error: str | None = None
 
     @property
     def content_kind(self) -> ContentKind:
