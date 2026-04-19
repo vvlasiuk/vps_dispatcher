@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
-
+from typing import Any
 
 class ContentKind(StrEnum):
     TEXT = "text"
@@ -57,7 +57,9 @@ class InputMessage(BaseModel):
     source: MessageSource
     content: MessageContent | None = None
     command_tag: CommandTag | None = Field(default=None, alias="command")
-    data: object = Field(default_factory=dict, alias="DATA")
+    data: Any | None = Field(default=None, alias="data")
+    # data: object = Field(default_factory=dict, alias="DATA")
+    #object = Field(default_factory=dict, alias="DATA")
     destination: MessageDestination | None = Field(default=None, alias="destination")
     error: str | None = None
 

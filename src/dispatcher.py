@@ -144,7 +144,9 @@ async def run_dispatcher(env_file: str | None) -> None:
             return
 
         try:
+            # message = InputMessage.model_construct(**payload)
             message = InputMessage.model_validate(payload)
+
         except Exception as exc:
             LOGGER.exception("invalid_input_payload")
             await incoming.ack()
