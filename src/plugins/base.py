@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from contracts.input_message import InputMessage
 from contracts.workflow_state import WorkflowState
@@ -37,9 +37,9 @@ class PluginOutput:
 
 @dataclass(slots=True)
 class PluginResult:
-    workflow_state: WorkflowState
-    outputs: list[PluginOutput] = field(default_factory=list)
-    journal_events: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    workflow_state: Optional[object] = None  # або Optional[WorkflowState] якщо імпорт залишаєш
+    outputs: list[PluginOutput] = None
+    # journal_events: list[tuple[str, dict]] = None
     stop_processing: bool = False
 
 

@@ -14,13 +14,13 @@ class DownstreamTaskKind(StrEnum):
 
 
 class TaskSourceContext(BaseModel):
-    system: str
-    source_id: str
-    chat_id: str
+    system: str | None = None
+    source_id: str | None = None
+    chat_id: str | None = None
     user_id: str | None = None
     username: str | None = None
     group_id: str | None = None
-    message_id: str
+    message_id: str | None = None
 
 
 class OutboundTask(BaseModel):

@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 from ai.provider import GeminiAIProvider
 from common.settings import Settings
@@ -7,6 +8,7 @@ from contracts.workflow_state import WorkflowState, WorkflowAlgorithm, WorkflowS
 import json
 from pathlib import Path
 import logging
+from src.common.api_utils import ApiClient
 
 
 _RESOURCES_DIR = Path(__file__).parent / "resources"
@@ -34,6 +36,14 @@ class ExamplePlugin(MessagePlugin):
         
         У цьому шаблоні — заглушка, яка завжди повертає should_run=True.
         """
+        # === Приклад використання ApiClient ===
+        api_client = ApiClient()
+        temp_token_info = api_client.get_temp_token(
+            expires_at="2026-05-01T12:00:00Z",
+            max_uses=5,
+            context_id="example_context_id"
+        )
+        _LOGGER.info(f"Temp token info: {temp_token_info}")
         return MatchDecision(
             should_run=True,
             score=0.0,

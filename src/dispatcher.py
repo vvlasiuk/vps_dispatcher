@@ -15,10 +15,11 @@ from common.settings import load_settings
 from contracts.input_message import InputMessage
 from contracts.outbound_tasks import ErrorTask, TaskSourceContext
 from contracts.workflow_state import MessageJournalEntry, WorkflowStage, WorkflowStatus
-from messaging.rabbit import RabbitMQClient, decode_incoming_message
-from persistence.sqlite_store import SQLiteStateStore
+from messaging.rabbit import RabbitMQClient, decode_incoming_message, send_sys_error
+# from persistence.sqlite_store import SQLiteStateStore
 from plugins.base import MatchDecision, MessagePlugin, PluginContext
 from plugins.registry import build_plugin_registry
+from messaging.rabbit import send_sys_error
 
 LOGGER = logging.getLogger(__name__)
 _TEST_MODE_IN = "test_in"
@@ -54,7 +55,7 @@ def _build_error_task(
 
 
 async def _journal_event(
-    store: SQLiteStateStore,
+    # store: SQLiteStateStore,
     *,
     conversation_id: str,
     case_id: str,
@@ -62,17 +63,18 @@ async def _journal_event(
     event_type: str,
     payload: dict,
 ) -> None:
-    await store.append_journal(
-        MessageJournalEntry(
-            event_id=uuid4().hex,
-            conversation_id=conversation_id,
-            case_id=case_id,
-            message_id=message_id,
-            event_type=event_type,
-            payload=payload,
-            created_at=datetime.now(timezone.utc),
-        )
-    )
+    # await store.append_journal(
+    #     MessageJournalEntry(
+    #         event_id=uuid4().hex,
+    #         conversation_id=conversation_id,
+    #         case_id=case_id,
+    #         message_id=message_id,
+    #         event_type=event_type,
+    #         payload=payload,
+    #         created_at=datetime.now(timezone.utc),
+    #     )
+    # )
+    pass
 
 
 def _select_plugins(
@@ -93,13 +95,11 @@ def _select_plugins(
 
 
 def _build_conversation_id(message: InputMessage) -> str:
-    return ":".join(
-        [
-            message.source.system,
-            message.source.source_id,
-            message.source.chat_id,
-        ]
-    )
+    return ":".join([
+        str(message.source.system or ""),
+        str(message.source.source_id or ""),
+        str(message.source.chat_id or ""),
+    ])
 
 
 def _extract_test_tags(payload: dict) -> tuple[str | None, str | None]:
@@ -124,14 +124,15 @@ async def run_dispatcher(env_file: str | None) -> None:
     configure_logging(settings)
 
     input_rabbit = RabbitMQClient(settings, role="input")
-    output_rabbit = RabbitMQClient(settings, role="output")
-    store = SQLiteStateStore(str(settings.sqlite_path))
+    # output_rabbit = RabbitMQClient(settings, role="output")
+    # store = SQLiteStateStore(str(settings.sqlite_path))
     provider = GeminiAIProvider(settings)
     registry = build_plugin_registry(settings, provider)
 
-    await store.initialize()
+    # await store.initialize()
     await input_rabbit.connect()
-    await output_rabbit.connect()
+    output_rabbit = input_rabbit
+    # await output_rabbit.connect()
 
     async def handle_message(incoming: IncomingMessage) -> None:
         payload = decode_incoming_message(incoming)
@@ -152,15 +153,15 @@ async def run_dispatcher(env_file: str | None) -> None:
             await incoming.ack()
             return
 
-        current_state = await store.get_active_state(
-            source_system=message.source.system,
-            source_id=message.source.source_id,
-            chat_id=message.source.chat_id,
-        )
+        # current_state = await store.get_active_state(
+        #     source_system=message.source.system,
+        #     source_id=message.source.source_id,
+        #     chat_id=message.source.chat_id,
+        # )
         fallback_conversation_id = _build_conversation_id(message)
-        fallback_case_id = current_state.case_id if current_state else uuid4().hex
+        # fallback_case_id = current_state.case_id if current_state else uuid4().hex
         message_received_journaled = False
-        plugin_context = PluginContext(message=message, current_state=current_state)
+        plugin_context = PluginContext(message=message, current_state=None)
         matched_plugins: list[tuple[MessagePlugin, MatchDecision]] = []
         for plugin in registry.plugins:
             match = plugin.matches(plugin_context)
@@ -179,30 +180,30 @@ async def run_dispatcher(env_file: str | None) -> None:
         try:
             for plugin, match in selected_plugins:
                 plugin_result = await plugin.run(plugin_context)
-                final_state = plugin_result.workflow_state.model_copy(update={"updated_at": datetime.now(timezone.utc)})
-                await store.upsert_state(final_state)
-                plugin_context = PluginContext(message=message, current_state=final_state)
+                # final_state = plugin_result.workflow_state.model_copy(update={"updated_at": datetime.now(timezone.utc)})
+                # await store.upsert_state(final_state)
+                # plugin_context = PluginContext(message=message, current_state=None)
 
-                if not message_received_journaled:
-                    await _journal_event(
-                        store,
-                        conversation_id=final_state.conversation_id,
-                        case_id=final_state.case_id,
-                        message_id=message.source.message_id,
-                        event_type="message_received",
-                        payload=payload,
-                    )
-                    message_received_journaled = True
+                # if not message_received_journaled:
+                #     await _journal_event(
+                #         # store,
+                #         conversation_id=final_state.conversation_id,
+                #         case_id=final_state.case_id,
+                #         message_id=message.source.message_id,
+                #         event_type="message_received",
+                #         payload=payload,
+                #     )
+                #     message_received_journaled = True
 
-                for event_type, event_payload in plugin_result.journal_events:
-                    await _journal_event(
-                        store,
-                        conversation_id=final_state.conversation_id,
-                        case_id=final_state.case_id,
-                        message_id=message.source.message_id,
-                        event_type=event_type,
-                        payload=event_payload,
-                    )
+                # for event_type, event_payload in plugin_result.journal_events:
+                #     await _journal_event(
+                #         # store,
+                #         conversation_id=final_state.conversation_id,
+                #         case_id=final_state.case_id,
+                #         message_id=message.source.message_id,
+                #         event_type=event_type,
+                #         payload=event_payload,
+                #     )
 
                 for output in plugin_result.outputs:
                     output_payload = output.payload
@@ -233,14 +234,14 @@ async def run_dispatcher(env_file: str | None) -> None:
                         exchange_name,
                         routing_key,
                     )
-                    await _journal_event(
-                        store,
-                        conversation_id=final_state.conversation_id,
-                        case_id=final_state.case_id,
-                        message_id=message.source.message_id,
-                        event_type=output.event_type,
-                        payload=output_payload,
-                    )
+                    # await _journal_event(
+                    #     # store,
+                    #     conversation_id=final_state.conversation_id,
+                    #     case_id=final_state.case_id,
+                    #     message_id=message.source.message_id,
+                    #     event_type=output.event_type,
+                    #     payload=output_payload,
+                    # )
 
                 if not plugin_result.outputs:
                     LOGGER.info("plugin_executed_without_output plugin=%s", plugin.name)
@@ -252,8 +253,8 @@ async def run_dispatcher(env_file: str | None) -> None:
                     match.reason,
                 )
 
-                if final_state.status != WorkflowStatus.ERROR and final_state.stage == WorkflowStage.COMPLETED:
-                    await store.upsert_state(final_state.model_copy(update={"status": WorkflowStatus.COMPLETED}))
+                # if final_state.status != WorkflowStatus.ERROR and final_state.stage == WorkflowStage.COMPLETED:
+                #     await store.upsert_state(final_state.model_copy(update={"status": WorkflowStatus.COMPLETED}))
 
                 if plugin_result.stop_processing:
                     LOGGER.info("plugin_requested_stop plugin=%s", plugin.name)
@@ -262,45 +263,46 @@ async def run_dispatcher(env_file: str | None) -> None:
             await incoming.ack()
         except Exception as exc:
             LOGGER.exception("message_processing_failed")
-            state_for_error = plugin_context.current_state
-            conversation_id = fallback_conversation_id
-            case_id = fallback_case_id
-            if state_for_error is not None:
-                failed_state = state_for_error.model_copy(
-                    update={
-                        "stage": WorkflowStage.ERROR,
-                        "status": WorkflowStatus.ERROR,
-                        "updated_at": datetime.now(timezone.utc),
-                    }
-                )
-                await store.upsert_state(failed_state)
-                conversation_id = failed_state.conversation_id
-                case_id = failed_state.case_id
-                error_task = _build_error_task(
-                    message=message,
-                    conversation_id=conversation_id,
-                    case_id=case_id,
-                    error_code="message_processing_failed",
-                    error_message=str(exc),
-                )
-            else:
-                error_task = _build_error_task(
-                    message=message,
-                    conversation_id=conversation_id,
-                    case_id=case_id,
-                    error_code="message_processing_failed",
-                    error_message=str(exc),
-                )
+            # state_for_error = plugin_context.current_state
+            # conversation_id = fallback_conversation_id
+            # case_id = fallback_case_id
+            # if state_for_error is not None:
+            #     failed_state = state_for_error.model_copy(
+            #         update={
+            #             "stage": WorkflowStage.ERROR,
+            #             "status": WorkflowStatus.ERROR,
+            #             "updated_at": datetime.now(timezone.utc),
+            #         }
+            #     )
+                # await store.upsert_state(failed_state)
+                # conversation_id = failed_state.conversation_id
+                # case_id = failed_state.case_id
+                # error_task = _build_error_task(
+                #     message=message,
+                #     conversation_id=conversation_id,
+                #     case_id=case_id,
+                #     error_code="message_processing_failed",
+                #     error_message=str(exc),
+                # )
+            # else:
+            #     error_task = _build_error_task(
+            #         message=message,
+            #         conversation_id=conversation_id,
+            #         case_id=case_id,
+            #         error_code="message_processing_failed",
+            #         error_message=str(exc),
+            #     )
 
-            await _journal_event(
-                store,
-                conversation_id=conversation_id,
-                case_id=case_id,
-                message_id=message.source.message_id,
-                event_type="message_processing_failed",
-                payload=error_task.model_dump(mode="json"),
-            )
-            LOGGER.error("message_processing_failed: %s", error_task)
+            # await _journal_event(
+            #     # store,
+            #     conversation_id=conversation_id,
+            #     case_id=case_id,
+            #     message_id=message.source.message_id,
+            #     event_type="message_processing_failed",
+            #     payload=error_task.model_dump(mode="json"),
+            # )
+            await send_sys_error(output_rabbit, f"message_processing_failed: {exc}")
+            LOGGER.error("message_processing_failed: %s", exc)
             await incoming.reject(requeue=False)
 
     await input_rabbit.consume(settings.rabbitmq_queue, handle_message)

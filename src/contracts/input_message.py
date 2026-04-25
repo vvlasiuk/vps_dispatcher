@@ -26,13 +26,14 @@ class FileAttachment(BaseModel):
 
 class MessageSource(BaseModel):
     system: str
-    source_id: str
-    chat_id: str
+    source_id: str | None = None
+    chat_id: str | None = None
     user_id: str | None = None
     username: str | None = None
-    message_id: str
-    timestamp: datetime
+    message_id: str | None = None
+    timestamp: datetime | None = None
     group_id: str | None = None
+    context_id: int | None = None
 
 
 class MessageContent(BaseModel):
@@ -62,6 +63,8 @@ class InputMessage(BaseModel):
     #object = Field(default_factory=dict, alias="DATA")
     destination: MessageDestination | None = Field(default=None, alias="destination")
     error: str | None = None
+    command_name: str | None = None
+    command_params: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def content_kind(self) -> ContentKind:
