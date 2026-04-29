@@ -116,5 +116,5 @@ async def send_sys_error(rabbit_client, message: str):
             content_type="application/json",
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         ),
-        routing_key="sys_error.queue",
+        routing_key="sys_error.events", 
     )
