@@ -23,12 +23,12 @@ class TelegramUtils:
         )
 
     @staticmethod
-    def file_output(file_path: str, message, caption=None, event_type="file_sent"):
+    def file_output(file_path: str, chat_id, caption=None, event_type="file_sent"):
         return PluginOutput(
             payload={
                 "destination": {
                     "system": "telegram",
-                    "chat_id": str(getattr(message.source, "user_id", None) or message.source.chat_id),
+                    "chat_id": chat_id #tr(getattr(message.source, "user_id", None) or message.source.chat_id),
                 },
                 "type": "file",
                 "file_path": file_path,
