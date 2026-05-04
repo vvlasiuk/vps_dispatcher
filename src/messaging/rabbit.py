@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
@@ -9,6 +10,8 @@ import aio_pika
 from aio_pika import ExchangeType, IncomingMessage, Message, RobustChannel, RobustConnection
 
 from common.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -100,21 +103,27 @@ class RabbitMQClient:
 def decode_incoming_message(message: IncomingMessage) -> dict[str, Any]:
     return json.loads(message.body.decode("utf-8"))
 
-async def send_sys_error(rabbit_client, message: str):
+async def send_sys_error(rabbit_client: RabbitMQClient | None, message: str) -> None:
     """
     Надсилає системну помилку у чергу sys_error.queue через переданий rabbit_client.
     """
+    if rabbit_client is None:
+        logger.warning("sys_error_not_sent rabbit_client_missing")
+        return
     payload = {
         "type": "dispatcher",
         "text": message,
     }
-    channel = rabbit_client._require_channel()
-    exchange = await channel.get_exchange("sys_error.events")  # default exchange
-    await exchange.publish(
-        aio_pika.Message(
-            body=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            content_type="application/json",
-            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-        ),
-        routing_key="sys_error.events", 
-    )
+    try:
+        channel = rabbit_client._require_channel()
+        exchange = await channel.get_exchange("sys_error.events")
+        await exchange.publish(
+            aio_pika.Message(
+                body=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                content_type="application/json",
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            ),
+            routing_key="sys_error.events",
+        )
+    except Exception:
+        logger.exception("sys_error_publish_failed")

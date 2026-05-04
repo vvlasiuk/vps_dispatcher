@@ -161,7 +161,11 @@ async def run_dispatcher(env_file: str | None) -> None:
         fallback_conversation_id = _build_conversation_id(message)
         # fallback_case_id = current_state.case_id if current_state else uuid4().hex
         message_received_journaled = False
-        plugin_context = PluginContext(message=message, current_state=None)
+        plugin_context = PluginContext(
+            message=message,
+            current_state=None,
+            rabbit_client=output_rabbit,
+        )
         matched_plugins: list[tuple[MessagePlugin, MatchDecision]] = []
         for plugin in registry.plugins:
             match = plugin.matches(plugin_context)

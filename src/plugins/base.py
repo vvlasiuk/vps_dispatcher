@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from contracts.input_message import InputMessage
 from contracts.workflow_state import WorkflowState
+from messaging.rabbit import RabbitMQClient
+
+if TYPE_CHECKING:
+    from messaging.rabbit import RabbitMQClient
 
 
 @dataclass(slots=True)
 class PluginContext:
     message: InputMessage
     current_state: WorkflowState | None
+    rabbit_client: RabbitMQClient | None = None
 
 
 @dataclass(slots=True)
