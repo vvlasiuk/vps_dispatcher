@@ -40,3 +40,22 @@ class TelegramUtils:
             ),
             event_type=event_type,
         )
+
+    @staticmethod
+    def text_output(text: str, chat_id, caption=None, event_type="text_sent"):
+        return PluginOutput(
+            payload={
+                "destination": {
+                    "system": "telegram",
+                    "chat_id": chat_id,
+                },
+                "type": "text",
+                "content": text,
+                "caption": caption or "",
+            },
+            destination=RabbitDestination(
+                exchange=_OUTPUT_EXCHANGE,
+                routing_key=_OUTPUT_ROUTING_KEY,
+            ),
+            event_type=event_type,
+        )
