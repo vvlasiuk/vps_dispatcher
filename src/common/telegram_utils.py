@@ -42,7 +42,7 @@ class TelegramUtils:
         )
 
     @staticmethod
-    def text_output(text: str, chat_id, caption=None, event_type="text_sent"):
+    def text_output(text: str, chat_id, caption=None, reply_markup: dict | None = None, event_type="text_sent"):
         return PluginOutput(
             payload={
                 "destination": {
@@ -52,6 +52,7 @@ class TelegramUtils:
                 "type": "text",
                 "content": text,
                 "caption": caption or "",
+                **({"reply_markup": reply_markup} if reply_markup is not None else {}),
             },
             destination=RabbitDestination(
                 exchange=_OUTPUT_EXCHANGE,
