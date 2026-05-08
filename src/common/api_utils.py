@@ -109,4 +109,21 @@ class ApiClient:
             return True
         except Exception as e:
             logging.error(f"Failed to close context: {e}")
-            return False        
+            return False
+
+    def create_user(self, user_data: dict) -> Optional[dict]:
+        if not all([self.host, self.port, self.master_token]):
+            logging.warning("API parameters are missing. Cannot create user.")
+            return None
+        url = f"{self.url}/users"
+        headers = {
+            "Authorization": f"Bearer {self.master_token}",
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.post(url, json=user_data, headers=headers, timeout=10, verify=True)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to create user: {e}")
+            return None
