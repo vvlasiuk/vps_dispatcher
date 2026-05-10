@@ -4,7 +4,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,9 +77,23 @@ class Settings(BaseSettings):
     temp_files_dir: Path = Field(default="temp_files", alias="TEMP_FILES_DIR")
 
     # === API SERVER ===
-    api_server_host: str = Field(default="", alias="API_SERVER_HOST")
-    api_server_port: int = Field(default=0, alias="API_SERVER_PORT")
-    api_access_token: str = Field(default="", alias="API_ACCESS_TOKEN")
+    api_server_host: str | None = Field(default=None, alias="API_SERVER_HOST")
+    api_server_port: int | None = Field(default=None, alias="API_SERVER_PORT")
+    api_access_token: str | None = Field(default=None, alias="API_ACCESS_TOKEN")
+
+    @field_validator("api_server_host", "api_access_token", mode="before")
+    @classmethod
+    def _empty_string_to_none_for_api_strings(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("api_server_port", mode="before")
+    @classmethod
+    def _empty_string_to_none_for_api_port(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 @lru_cache(maxsize=8)

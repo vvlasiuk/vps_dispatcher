@@ -10,13 +10,18 @@ class ApiClient:
         self.host = getattr(settings, "api_server_host", None)
         self.port = getattr(settings, "api_server_port", None)
         self.master_token = getattr(settings, "api_access_token", None)
-        self.url = f"http://{self.host}:{self.port}"
-
-        if not all([self.host, self.port, self.master_token]):
+        self.url: Optional[str] = None
+ 
+        if all([self.host, self.port, self.master_token]):
+            self.url = f"http://{self.host}:{self.port}"
+        else:
             logging.warning("API parameters are not fully set. ApiClient will be inactive.")
-
+ 
+    def _is_configured(self) -> bool:
+        return bool(self.url and self.master_token)
+    
     def get_temp_token(self, expires_at: str, max_uses: int, context_id: str) -> Optional[dict]:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot get temp token.")
             return None
         url = f"{self.url}/token"
@@ -38,7 +43,7 @@ class ApiClient:
             return None
 
     def read_context(self, object_id: str) -> Optional[dict]:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot read context.")
             return None
         url = f"{self.url}/context/{object_id}"
@@ -55,7 +60,7 @@ class ApiClient:
             return None
 
     def read_context_by_id(self, id: int) -> Optional[dict]:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot read context by id.")
             return None
         url = f"{self.url}/context_by_id/{id}"
@@ -72,7 +77,7 @@ class ApiClient:
             return None
 
     def create_context(self, object_id: str, end_at: str, context_data: dict, status: str = "active") -> Optional[dict]:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot write context.")
             return None
         url = f"{self.url}/context"
@@ -95,7 +100,7 @@ class ApiClient:
             return None
         
     def close_context(self, id: int) -> bool:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot close context.")
             return False
         url = f"{self.url}/context/{id}/close"
@@ -112,7 +117,7 @@ class ApiClient:
             return False
 
     def create_user(self, user_data: dict) -> Optional[dict]:
-        if not all([self.host, self.port, self.master_token]):
+        if not self._is_configured():
             logging.warning("API parameters are missing. Cannot create user.")
             return None
         url = f"{self.url}/users"
