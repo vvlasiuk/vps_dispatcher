@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 from pathlib import Path
 from typing import TypeVar
@@ -37,6 +38,15 @@ def _convert_file_to_data_uri(file_path: str) -> str:
     return f"data:{mime_type};base64,{b64_data}"
 
 
+def _is_retryable_gemini_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "503" in message
+        or "service unavailable" in message
+        or "temporarily unavailable" in message
+    )
+
+
 class GeminiAIProvider:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -57,6 +67,8 @@ class GeminiAIProvider:
         prompt: str,
         response_model: type[SchemaModel],
         message: InputMessage,
+        retry_attempts: int = 0,
+        retry_delay_seconds: float = 0.0,
     ) -> SchemaModel:
         if not self._llm:
             raise RuntimeError("GEMINI_API_KEY is required for AI workflow nodes")
@@ -82,7 +94,25 @@ class GeminiAIProvider:
             )
 
         structured_llm = self._llm.with_structured_output(response_model)
-        result = await structured_llm.ainvoke([HumanMessage(content=payload_blocks)])
+
+        attempts = max(0, retry_attempts)
+        delay = max(0.0, retry_delay_seconds)
+        last_error: Exception | None = None
+        result = None
+
+        for attempt in range(attempts + 1):
+            try:
+                result = await structured_llm.ainvoke([HumanMessage(content=payload_blocks)])
+                break
+            except Exception as exc:
+                last_error = exc
+                if attempt >= attempts or not _is_retryable_gemini_error(exc):
+                    raise
+                if delay > 0:
+                    await asyncio.sleep(delay)
+
+        if result is None and last_error is not None:
+            raise last_error
 
         if isinstance(result, response_model):
             validated = result

@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     plugin_max_selected_plugins: int = Field(default=2, alias="PLUGIN_MAX_SELECTED_PLUGINS")
     temp_files_dir: Path = Field(default="temp_files", alias="TEMP_FILES_DIR")
 
+    # === API SERVER ===
+    api_server_host: str = Field(default="", alias="API_SERVER_HOST")
+    api_server_port: int = Field(default=0, alias="API_SERVER_PORT")
+    api_access_token: str = Field(default="", alias="API_ACCESS_TOKEN")
+
 
 @lru_cache(maxsize=8)
 def load_settings(cli_env_file: str | None = None) -> Settings:

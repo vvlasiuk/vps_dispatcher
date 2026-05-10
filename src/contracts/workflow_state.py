@@ -46,9 +46,9 @@ class IdentityHints(BaseModel):
 class WorkflowState(BaseModel):
     conversation_id: str
     case_id: str
-    source_system: str
-    source_id: str
-    chat_id: str
+    source_system: str| None = None
+    source_id: str| None = None
+    chat_id: str| None = None
     group_id: str | None = None
     algorithm: WorkflowAlgorithm = WorkflowAlgorithm.UNKNOWN
     stage: WorkflowStage = WorkflowStage.WAITING_FOR_COMMAND
