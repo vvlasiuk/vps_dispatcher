@@ -9,6 +9,7 @@ __pycache__/
 runtime/
 logs/
 .vscode/*.log
+run.bat
 
 # Client-specific plugins (not versioned, archived separately)
 src/plugins/clients/*
