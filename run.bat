@@ -1,1 +1,2 @@
+@echo off
 "%~dp0venv\Scripts\Python.exe" "%~dp0src\main.py" --env-file "%~dp0.env"
