@@ -175,6 +175,7 @@ async def run_dispatcher(env_file: str | None) -> None:
         selected_plugins = _select_plugins(matched_plugins, settings.plugin_execution_policy)
         if settings.plugin_execution_policy.strip().lower() == "multi_cast":
             selected_plugins = list(islice(selected_plugins, max(settings.plugin_max_selected_plugins, 1)))
+            selected_plugins = sorted(selected_plugins, key=lambda item: item[1].score, reverse=False)
 
         if not selected_plugins:
             LOGGER.warning("no_plugin_selected")
