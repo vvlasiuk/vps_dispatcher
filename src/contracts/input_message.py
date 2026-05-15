@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Any
 
 class ContentKind(StrEnum):
@@ -34,6 +34,13 @@ class MessageSource(BaseModel):
     timestamp: datetime | None = None
     group_id: str | None = None
     context_id: int | None = None
+
+    @field_validator("context_id", mode="before")
+    @classmethod
+    def _empty_string_to_none_for_context_id(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 class MessageContent(BaseModel):
