@@ -2,6 +2,8 @@ import logging
 from typing import Optional
 import requests
 from common.settings import load_settings
+from messaging.rabbit import send_sys_error
+import asyncio
 
 settings = load_settings()
 
@@ -76,7 +78,14 @@ class ApiClient:
             logging.error(f"Failed to read context by id: {e}")
             return None
 
-    def create_context(self, object_id: str, end_at: str, context_data: dict, status: str = "active") -> Optional[dict]:
+    async def create_context(
+        self,
+        object_id: str,
+        end_at: str,
+        context_data: dict,
+        status: str = "active",
+        rabbit_client=None,
+    ) -> Optional[dict]:
         if not self._is_configured():
             logging.warning("API parameters are missing. Cannot write context.")
             return None
@@ -92,11 +101,24 @@ class ApiClient:
             # "status": status
         }
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=10, verify=True)
+            response = await asyncio.to_thread(
+                requests.post,
+                url,
+                json=payload,
+                headers=headers,
+                timeout=10,
+                verify=True,
+            )
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            logging.error(f"Failed to write context: {e}")
+            error_message = f"Failed to write context: {e}"
+            logging.error("%s payload=%s", error_message, context_data)
+            if rabbit_client is not None:
+                await send_sys_error(
+                    rabbit_client,
+                    f"{error_message} payload={context_data}",
+                )
             return None
         
     def close_context(self, id: int) -> bool:
