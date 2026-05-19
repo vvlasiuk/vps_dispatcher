@@ -64,7 +64,7 @@ class InputMessage(BaseModel):
 
     source: MessageSource
     content: MessageContent | None = None
-    command_tag: CommandTag | None = Field(default=None, alias="command")
+    command: CommandTag | None = Field(default=None, alias="command")
     data: Any | None = Field(default=None, alias="data")
     # data: object = Field(default_factory=dict, alias="DATA")
     #object = Field(default_factory=dict, alias="DATA")
