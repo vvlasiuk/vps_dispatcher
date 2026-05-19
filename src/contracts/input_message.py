@@ -19,6 +19,7 @@ class FileAttachment(BaseModel):
     file_url: str
     mime_type: str
 
+    # @computed_field(exclude=True)
     @property
     def is_image(self) -> bool:
         return self.mime_type.startswith("image/")
@@ -88,6 +89,7 @@ class InputMessage(BaseModel):
             return ContentKind.PHOTO
         return ContentKind.FILE
 
+    # @computed_field(exclude=True)
     @property
     def command(self) -> str | None:
         if not self.content or not self.content.text:
