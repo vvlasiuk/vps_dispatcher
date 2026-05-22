@@ -154,3 +154,62 @@ class ApiClient:
         except Exception as e:
             logging.error(f"Failed to create user: {e}")
             return None
+
+    def create_global_message_context(self, context_id: int) -> Optional[dict]:
+        if not self._is_configured():
+            logging.warning("API parameters are missing. Cannot create global_message_context.")
+            return None
+        url = f"{self.url}/global_message_context/"
+        headers = {
+            "Authorization": f"Bearer {self.master_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {"context_id": context_id}
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10, verify=True)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to create global_message_context: {e}")
+            return None
+
+    def read_global_message_context(self, global_msg_id: int = None) -> Optional[list]:
+        if not self._is_configured():
+            logging.warning("API parameters are missing. Cannot read global_message_context.")
+            return None
+        url = f"{self.url}/global_message_context/"
+        headers = {
+            "Authorization": f"Bearer {self.master_token}",
+            "Content-Type": "application/json"
+        }
+        params = {}
+        if global_msg_id is not None:
+            params["global_msg_id"] = global_msg_id
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=True)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to read global_message_context: {e}")
+            return None
+
+    def read_global_message_telegram(self, global_msg_id: int = None) -> Optional[list]:
+        if not self._is_configured():
+            logging.warning("API parameters are missing. Cannot read global_message_telegram.")
+            return None
+        url = f"{self.url}/global_message_telegram/"
+        headers = {
+            "Authorization": f"Bearer {self.master_token}",
+            "Content-Type": "application/json"
+        }
+        params = {}
+        if global_msg_id is not None:
+            params["global_msg_id"] = global_msg_id
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=True)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to read global_message_telegram: {e}")
+            return None
+

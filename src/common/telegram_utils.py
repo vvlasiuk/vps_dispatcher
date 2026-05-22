@@ -1,4 +1,5 @@
 from plugins.base import PluginOutput, RabbitDestination
+# import requests
 
 _OUTPUT_EXCHANGE = "output_telegram.events"
 _OUTPUT_ROUTING_KEY = "output_telegram.events"
@@ -42,7 +43,14 @@ class TelegramUtils:
         )
 
     @staticmethod
-    def text_output(text: str, chat_id, caption=None, reply_markup: dict | None = None, event_type="text_sent"):
+    def text_output(
+        text: str, 
+        chat_id, 
+        caption=None, 
+        reply_markup: dict | None = None, 
+        event_type="text_sent",
+        global_msg_id=None,
+    ):
         return PluginOutput(
             payload={
                 "destination": {
@@ -52,6 +60,7 @@ class TelegramUtils:
                 "type": "text",
                 "content": text,
                 "caption": caption or "",
+                "global_msg_id": global_msg_id,
                 **({"reply_markup": reply_markup} if reply_markup is not None else {}),
             },
             destination=RabbitDestination(
@@ -78,3 +87,23 @@ class TelegramUtils:
             ),
             event_type=event_type,
         )
+
+    # def read_global_message_telegram(self, global_msg_id: int = None) -> Optional[list]:
+    #     if not self._is_configured():
+    #         logging.warning("API parameters are missing. Cannot read global_message_telegram.")
+    #         return None
+    #     url = f"{self.url}/global_message_telegram/"
+    #     headers = {
+    #         "Authorization": f"Bearer {self.master_token}",
+    #         "Content-Type": "application/json"
+    #     }
+    #     params = {}
+    #     if global_msg_id is not None:
+    #         params["global_msg_id"] = global_msg_id
+    #     try:
+    #         response = requests.get(url, headers=headers, params=params, timeout=10, verify=True)
+    #         response.raise_for_status()
+    #         return response.json()
+    #     except Exception as e:
+    #         logging.error(f"Failed to read global_message_telegram: {e}")
+    #         return None
