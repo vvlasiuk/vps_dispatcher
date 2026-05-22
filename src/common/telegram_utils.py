@@ -60,3 +60,21 @@ class TelegramUtils:
             ),
             event_type=event_type,
         )
+
+    @staticmethod
+    def edit_text_output(chat_id, message_id, text: str, event_type="text_edited"):
+        return PluginOutput(
+            payload={
+                "type": "edit_text",
+                "content": text,
+                "destination": {
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                },
+            },
+            destination=RabbitDestination(
+                exchange=_OUTPUT_EXCHANGE,
+                routing_key=_OUTPUT_ROUTING_KEY,
+            ),
+            event_type=event_type,
+        )
