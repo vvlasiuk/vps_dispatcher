@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -74,6 +76,7 @@ class Settings(BaseSettings):
     )
     plugin_execution_policy: str = Field(default="highest_score", alias="PLUGIN_EXECUTION_POLICY")
     plugin_max_selected_plugins: int = Field(default=2, alias="PLUGIN_MAX_SELECTED_PLUGINS")
+    plugin_vars_json: str = Field(default="{}", alias="PLUGIN_VARS_JSON")
     temp_files_dir: Path = Field(default="temp_files", alias="TEMP_FILES_DIR")
 
     # === API SERVER ===
@@ -94,6 +97,39 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("plugin_vars_json", mode="before")
+    @classmethod
+    def _empty_plugin_vars_json_to_default(cls, value: object) -> object:
+        if value is None:
+            return "{}"
+        if isinstance(value, str) and not value.strip():
+            return "{}"
+        return value
+
+    @field_validator("plugin_vars_json")
+    @classmethod
+    def _validate_plugin_vars_json(cls, value: str) -> str:
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError("PLUGIN_VARS_JSON must be valid JSON") from exc
+
+        if not isinstance(parsed, dict):
+            raise ValueError("PLUGIN_VARS_JSON must be a JSON object")
+        return value
+
+    @property
+    def plugin_vars(self) -> dict[str, Any]:
+        return json.loads(self.plugin_vars_json)
+
+    def get_plugin_var_list(self, key: str) -> list[str]:
+        value = self.plugin_vars.get(key, [])
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        return []
 
 
 @lru_cache(maxsize=8)
